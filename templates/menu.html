@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Menú</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { margin-bottom: 6px; }
+    .section { margin: 18px 0; padding: 12px; border: 1px solid #ddd; border-radius: 10px; }
+    .item { display:flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #eee; }
+    .item:last-child { border-bottom: none; }
+    .muted { color: #666; font-size: 14px; }
+    a { text-decoration: none; }
+  </style>
+</head>
+<body>
+  <h1>Menú</h1>
+  <div class="muted">Solo: Pasteles, Gelatinas y Para el Antojo.</div>
+  <p><a href="/">← Volver</a></p>
+
+  <div class="section">
+    <h2>PASTELES</h2>
+    {% if grouped["PASTELES"]|length == 0 %}
+      <div class="muted">No hay productos en esta sección.</div>
+    {% else %}
+      {% for it in grouped["PASTELES"] %}
+        <div class="item">
+          <div>{{ it.name }}</div>
+          <div>{{ it.price_cents|pesos }}</div>
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  <div class="section">
+    <h2>GELATINAS</h2>
+    {% if grouped["GELATINAS"]|length == 0 %}
+      <div class="muted">No hay productos en esta sección.</div>
+    {% else %}
+      {% for it in grouped["GELATINAS"] %}
+        <div class="item">
+          <div>{{ it.name }}</div>
+          <div>{{ it.price_cents|pesos }}</div>
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  <div class="section">
+    <h2>PARA EL ANTOJO</h2>
+    {% if grouped["ANTOJO"]|length == 0 %}
+      <div class="muted">No hay productos en esta sección.</div>
+    {% else %}
+      {% for it in grouped["ANTOJO"] %}
+        <div class="item">
+          <div>{{ it.name }}</div>
+          <div>{{ it.price_cents|pesos }}</div>
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+</body>
+</html>

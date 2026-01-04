@@ -1,0 +1,70 @@
+@'
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>FoodBiz</title>
+</head>
+<body>
+  <h1>FoodBiz</h1>
+
+  <h2>Periodo actual (desde último corte: {{ last_cut }})</h2>
+  <p><strong>Total:</strong> {{ totals.total_cents|pesos }}</p>
+  <p><strong>Cantidad vendida:</strong> {{ totals.total_qty }}</p>
+  <p><strong>Menú:</strong> {{ totals.menu_qty }} ({{ totals.menu_cents|pesos }})</p>
+  <p><strong>Antojos/Postres:</strong> {{ totals.other_qty }} ({{ totals.other_cents|pesos }})</p>
+
+  <form method="post" action="/orders/menu">
+    <button style="font-size:22px; padding:12px 22px;">Menú ($100)</button>
+  </form>
+
+  <p><a href="/orders/new">Registrar pedido (pasteles/gelatinas/antojo)</a></p>
+  <p><a href="/menu">Ver menú por secciones</a></p>
+  <p><a href="/sales">Ventas / Cortes / Admin</a></p>
+
+  <hr>
+  <h2>Últimas ventas (para cancelar)</h2>
+  <p style="color:#666;">Cancelar requiere PIN + motivo.</p>
+
+  <table border="1" cellpadding="8">
+    <tr>
+      <th>ID</th>
+      <th>Hora</th>
+      <th>Total</th>
+      <th>Status</th>
+      <th>Cancelar</th>
+    </tr>
+    {% for o in recent_orders %}
+      <tr>
+        <td>{{ o.id }}</td>
+        <td>{{ o.created_at }}</td>
+        <td>{{ o.total_cents|pesos }}</td>
+        <td>{{ o.status }}</td>
+        <td>
+          {% if o.status == "ok" %}
+          <form method="post" action="/orders/{{ o.id }}/cancel">
+            <input name="reason" placeholder="Motivo" required>
+            <input name="pin" placeholder="PIN" style="width:70px;" required>
+            <button type="submit">Cancelar</button>
+          </form>
+          {% else %}
+            —
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+  </table>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <hr>
+      <ul>
+        {% for cat, msg in messages %}
+          <li><strong>{{ cat }}:</strong> {{ msg }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
+</body>
+</html>
+'@ | Set-Content -Encoding UTF8 .\templates\index.html

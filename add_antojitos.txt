@@ -1,0 +1,67 @@
+@'
+import sqlite3
+
+DB="foodbiz.db"
+
+items = [
+("Gelatina de rompope",20),
+("Gelatina de cajeta",20),
+("Gelatina de queso",25),
+("Gelatina de jerez",20),
+("Gelatina combinada",20),
+("Gelatina de agua",20),
+("Gelatina de mosaico",35),
+("Ensalada de manzana",50),
+("Fresas con crema",50),
+("Arroz con leche",30),
+("Flan napolitano (Ch)",35),
+("Chocolatin",40),
+("Chocolatito",80),
+("Paycito de limón",50),
+("Paycito de fresa",50),
+("Paycito de queso",40),
+("Rebanada de nevado",65),
+("Raton",40),
+("Mostachon CH",70),
+("Tuti de queso",20),
+("Estrudel de manzana",95),
+("Merengues",25),
+("Volovan de atun",20),
+("Empanadas de jamon c queso",20),
+("Galleta nuez c chocolate",15),
+("Galleta nuez",35),
+("Tamal de cazuela",240),
+]
+
+conn = sqlite3.connect(DB)
+cur = conn.cursor()
+
+# Asegurar tabla por si acaso
+cur.execute("""
+CREATE TABLE IF NOT EXISTS menu_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  price_cents INTEGER NOT NULL,
+  category TEXT NOT NULL
+)
+""")
+
+added = 0
+skipped = 0
+
+for name, price in items:
+    cur.execute("SELECT 1 FROM menu_items WHERE name=? AND category='ANTOJO' LIMIT 1", (name,))
+    if cur.fetchone():
+        skipped += 1
+        continue
+    cur.execute(
+        "INSERT INTO menu_items (name, price_cents, category) VALUES (?,?,?)",
+        (name, int(price*100), "ANTOJO")
+    )
+    added += 1
+
+conn.commit()
+conn.close()
+
+print(f"Listo. Agregados: {added}. Ya existían: {skipped}.")
+'@ | Set-Content -Encoding UTF8 .\add_antojitos.py

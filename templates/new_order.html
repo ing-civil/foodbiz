@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><title>Registrar pedido</title></head>
+<body>
+  <h1>Registrar pedido (postres/antojos)</h1>
+  <p><a href="/">Volver</a></p>
+
+  <form method="post">
+    <h2>PASTELES</h2>
+    {% for it in grouped["PASTELES"] %}
+      <div>
+        {{ it.name }} ({{ it.price_cents|pesos }})
+        <input type="number" min="0" value="0" name="qty_{{ it.id }}" style="width:70px;">
+      </div>
+    {% endfor %}
+
+    <h2>GELATINAS</h2>
+    {% for it in grouped["GELATINAS"] %}
+      <div>
+        {{ it.name }} ({{ it.price_cents|pesos }})
+        <input type="number" min="0" value="0" name="qty_{{ it.id }}" style="width:70px;">
+      </div>
+    {% endfor %}
+
+    <h2>PARA EL ANTOJO</h2>
+    {% for it in grouped["ANTOJO"] %}
+      <div>
+        {{ it.name }} ({{ it.price_cents|pesos }})
+        <input type="number" min="0" value="0" name="qty_{{ it.id }}" style="width:70px;">
+      </div>
+    {% endfor %}
+
+    <br>
+    <button type="submit" style="font-size:18px;">Guardar venta</button>
+  </form>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <hr>
+      <ul>
+        {% for cat, msg in messages %}
+          <li><strong>{{ cat }}:</strong> {{ msg }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
+</body>
+</html>
