@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ticket #{{ order["id"] }}</title>
+  <style>
+    body { font-family: system-ui, Arial; max-width: 380px; margin: 20px auto; }
+    h1 { font-size: 20px; margin: 0 0 6px; }
+    .muted { color: #666; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    td { padding: 6px 0; border-bottom: 1px dashed #ccc; font-size: 14px; }
+    td:last-child { text-align: right; }
+    .total { font-weight: 700; font-size: 16px; }
+    .btns { margin-top: 14px; display: flex; gap: 10px; }
+    a, button { padding: 10px 12px; border: 1px solid #222; background: #fff; cursor: pointer; text-decoration: none; color: #111; border-radius: 8px; }
+    .primary { background: #111; color: #fff; }
+    @media print {
+      .btns { display: none; }
+      body { margin: 0; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Ticket #{{ order["id"] }}</h1>
+  <div class="muted">Fecha: {{ order["created_at"] }}</div>
+
+  <table>
+    {% for it in items %}
+      <tr>
+        <td>{{ it["name"] }} x{{ it["qty"] }}</td>
+        <td>{{ (it["qty"] * it["price_cents"])|pesos }}</td>
+      </tr>
+    {% endfor %}
+    <tr>
+      <td class="total">TOTAL</td>
+      <td class="total">{{ total_cents|pesos }}</td>
+    </tr>
+  </table>
+
+  <div class="btns">
+    <button class="primary" onclick="window.print()">Imprimir</button>
+    <a href="{{ url_for('index') }}">Volver al inicio</a>
+    <a href="{{ url_for('new_order') }}">Nueva venta</a>
+  </div>
+</body>
+</html>
