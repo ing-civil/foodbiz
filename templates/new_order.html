@@ -1,48 +1,96 @@
 <!doctype html>
 <html lang="es">
-<head><meta charset="utf-8"><title>Registrar pedido</title></head>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Nueva venta</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 18px; }
+    h2 { margin: 0 0 14px; }
+    h3 { margin: 18px 0 8px; }
+    .hint { color:#555; font-size: 13px; margin-bottom: 10px; }
+    .item { display:flex; gap: 10px; align-items:center; padding: 6px 0; border-bottom: 1px solid #eee; }
+    .name { flex: 1; }
+    .price { width: 110px; text-align:right; color:#222; }
+    input[type="number"] { width: 90px; padding: 6px; }
+    .actions { margin-top: 16px; display:flex; gap: 10px; }
+    button, a.btn { padding: 10px 12px; border: 1px solid #222; background:#fff; cursor:pointer; text-decoration:none; color:#000; }
+    .box { border:1px solid #ddd; padding: 12px; border-radius: 10px; }
+    .menuBox { border:1px solid #222; padding: 12px; border-radius: 10px; background: #fafafa; }
+  </style>
+</head>
 <body>
-  <h1>Registrar pedido (postres/antojos)</h1>
-  <p><a href="/">Volver</a></p>
 
-  <form method="post">
-    <h2>PASTELES</h2>
-    {% for it in grouped["PASTELES"] %}
-      <div>
-        {{ it.name }} ({{ it.price_cents|pesos }})
-        <input type="number" min="0" value="0" name="qty_{{ it.id }}" style="width:70px;">
-      </div>
-    {% endfor %}
-
-    <h2>GELATINAS</h2>
-    {% for it in grouped["GELATINAS"] %}
-      <div>
-        {{ it.name }} ({{ it.price_cents|pesos }})
-        <input type="number" min="0" value="0" name="qty_{{ it.id }}" style="width:70px;">
-      </div>
-    {% endfor %}
-
-    <h2>PARA EL ANTOJO</h2>
-    {% for it in grouped["ANTOJO"] %}
-      <div>
-        {{ it.name }} ({{ it.price_cents|pesos }})
-        <input type="number" min="0" value="0" name="qty_{{ it.id }}" style="width:70px;">
-      </div>
-    {% endfor %}
-
-    <br>
-    <button type="submit" style="font-size:18px;">Guardar venta</button>
-  </form>
+  <h2>Registrar venta</h2>
+  <div class="hint">Pon cantidades y al final dale <b>Guardar venta</b>. Nada se guarda hasta que presiones el botón.</div>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-      <hr>
-      <ul>
+      <div class="box" style="margin-bottom:12px;">
         {% for cat, msg in messages %}
-          <li><strong>{{ cat }}:</strong> {{ msg }}</li>
+          <div><b>{{ cat|upper }}</b>: {{ msg }}</div>
         {% endfor %}
-      </ul>
+      </div>
     {% endif %}
   {% endwith %}
+
+  <form method="post">
+
+    {% if grouped["MENU"] and grouped["MENU"]|length > 0 %}
+      <div class="menuBox">
+        <h3>MENÚ ($100)</h3>
+        <div class="hint">Esto es el “botón rápido”, pero aquí solo cuenta cuando guardas la venta.</div>
+        {% for it in grouped["MENU"] %}
+          <div class="item">
+            <div class="name"><b>{{ it.name }}</b></div>
+            <div class="price">{{ it.price_cents|pesos }}</div>
+            <input type="number" min="0" value="0" name="qty_{{ it.id }}">
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="box">
+      <h3>ANTOJOS</h3>
+      {% for it in grouped["ANTOJO"] %}
+        <div class="item">
+          <div class="name">{{ it.name }}</div>
+          <div class="price">{{ it.price_cents|pesos }}</div>
+          <input type="number" min="0" value="0" name="qty_{{ it.id }}">
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="box" style="margin-top:12px;">
+      <h3>GELATINAS</h3>
+      {% for it in grouped["GELATINAS"] %}
+        <div class="item">
+          <div class="name">{{ it.name }}</div>
+          <div class="price">{{ it.price_cents|pesos }}</div>
+          <input type="number" min="0" value="0" name="qty_{{ it.id }}">
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="box" style="margin-top:12px;">
+      <h3>PASTELES</h3>
+      {% for it in grouped["PASTELES"] %}
+        <div class="item">
+          <div class="name">{{ it.name }}</div>
+          <div class="price">{{ it.price_cents|pesos }}</div>
+          <input type="number" min="0" value="0" name="qty_{{ it.id }}">
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="actions">
+      <button type="submit">Guardar venta</button>
+      <a class="btn" href="{{ url_for('index') }}">Inicio</a>
+      <a class="btn" href="{{ url_for('menu') }}">Ver menú</a>
+      <a class="btn" href="{{ url_for('sales') }}">Cortes</a>
+    </div>
+
+  </form>
+
 </body>
 </html>

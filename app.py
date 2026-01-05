@@ -5,15 +5,15 @@ import os
 import shutil
 
 app = Flask(__name__)
-app.secret_key = "foodbiz-secret"
+app.secret_key = os.environ.get("SECRET_KEY", "foodbiz-secret")
 
-DB_PATH = "foodbiz.db"
-ADMIN_PIN = "1234"  # cámbialo
+DB_PATH = os.environ.get("DB_PATH", "foodbiz.db")
+ADMIN_PIN = os.environ.get("ADMIN_PIN", "1234")
 
 
-# -------------------------
-# Utilidades DB
-# -------------------------
+# -----------------------------
+# DB helpers
+# -----------------------------
 def db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -22,11 +22,6 @@ def db():
 
 def now_iso():
     return datetime.now().isoformat(timespec="seconds")
-
-
-@app.template_filter("pesos")
-def pesos(cents: int):
-    return f"${int(cents)/100:,.2f} MXN"
 
 
 def require_pin(pin: str) -> bool:
@@ -49,9 +44,6 @@ def create_backup():
     return dst
 
 
-# -------------------------
-# Inicialización DB
-# -------------------------
 def init_db():
     conn = db()
     cur = conn.cursor()
@@ -79,7 +71,9 @@ def init_db():
         order_id INTEGER NOT NULL,
         menu_item_id INTEGER NOT NULL,
         qty INTEGER NOT NULL CHECK(qty > 0),
-        price_cents INTEGER NOT NULL CHECK(price_cents >= 0)
+        price_cents INTEGER NOT NULL CHECK(price_cents >= 0),
+        FOREIGN KEY(order_id) REFERENCES orders(id),
+        FOREIGN KEY(menu_item_id) REFERENCES menu_items(id)
     )
     """)
 
@@ -111,18 +105,92 @@ def init_db():
 
     conn.commit()
 
-    # Seed mínimo: SOLO menú del día (para no duplicar cosas que tú agregas después)
-    cur.execute("SELECT COUNT(*) FROM menu_items WHERE category='MENU'")
-    if cur.fetchone()[0] == 0:
-        cur.execute(
+    # Seed inicial
+    cur.execute("SELECT COUNT(*) AS n FROM menu_items")
+    if int(cur.fetchone()["n"]) == 0:
+        seed = []
+
+        # MENU del día (SIEMPRE EXISTE)
+        seed.append(("Menú del día", 10000, "MENU"))
+
+        # ANTOJO (tu tabla)
+        seed += [
+            ("Gelatina de rompope", 2000, "ANTOJO"),
+            ("Gelatina de cajeta", 2000, "ANTOJO"),
+            ("Gelatina de queso", 2500, "ANTOJO"),
+            ("Gelatina de jerez", 2000, "ANTOJO"),
+            ("Gelatina combinada", 2000, "ANTOJO"),
+            ("Gelatina de agua", 2000, "ANTOJO"),
+            ("Gelatina de mosaico", 3500, "ANTOJO"),
+            ("Ensalada de manzana", 5000, "ANTOJO"),
+            ("Fresas con crema", 5000, "ANTOJO"),
+            ("Arroz con leche", 3000, "ANTOJO"),
+            ("Flan napolitano (Ch)", 3500, "ANTOJO"),
+            ("Chocolatin", 4000, "ANTOJO"),
+            ("Chocolatito", 8000, "ANTOJO"),
+            ("Paycito de limón", 5000, "ANTOJO"),
+            ("Paycito de fresa", 5000, "ANTOJO"),
+            ("Paycito de queso", 4000, "ANTOJO"),
+            ("Rebanada de nevado", 6500, "ANTOJO"),
+            ("Raton", 4000, "ANTOJO"),
+            ("Mostachon CH", 7000, "ANTOJO"),
+            ("Tuti de queso", 2000, "ANTOJO"),
+            ("Estrudel de manzana", 9500, "ANTOJO"),
+            ("Merengues", 2500, "ANTOJO"),
+            ("Volovan de atun", 2000, "ANTOJO"),
+            ("Empanadas de jamon c queso", 2000, "ANTOJO"),
+            ("Galleta nuez c chocolate", 1500, "ANTOJO"),
+            ("Galleta nuez", 3500, "ANTOJO"),
+            ("Tamal de cazuela", 24000, "ANTOJO"),
+        ]
+
+        # PASTELES
+        seed += [
+            ("Nevado de coco (12)", 59000, "PASTELES"),
+            ("Nevado de coco (20)", 76000, "PASTELES"),
+            ("Tres leches de cajeta (12)", 59000, "PASTELES"),
+            ("Tres leches de cajeta (20)", 76000, "PASTELES"),
+            ("Cheese Cake (20)", 69000, "PASTELES"),
+            ("Pastel de frutas navideño (20)", 66000, "PASTELES"),
+            ("Nuez con cajeta (12)", 46000, "PASTELES"),
+            ("Rosca de naranja (16)", 31000, "PASTELES"),
+            ("Rosca de naranja envinada (16)", 33000, "PASTELES"),
+            ("Rosca de nuez (16)", 31000, "PASTELES"),
+            ("Tronco Navideño (20)", 42000, "PASTELES"),
+            ("Niño envuelto (20)", 32000, "PASTELES"),
+        ]
+
+        # GELATINAS (grandes)
+        seed += [
+            ("Gelatina de cajeta (20)", 34000, "GELATINAS"),
+            ("Gelatina de fresa (20)", 34000, "GELATINAS"),
+            ("Gelatina de durazno (20)", 36000, "GELATINAS"),
+            ("Gelatina de vino con rompope (20)", 22500, "GELATINAS"),
+            ("Gelatina de vino con rompope (40)", 50000, "GELATINAS"),
+            ("Gelatina de queso (20)", 34000, "GELATINAS"),
+            ("Gelatina de mosaico (20)", 22500, "GELATINAS"),
+        ]
+
+        cur.executemany(
             "INSERT INTO menu_items (name, price_cents, category) VALUES (?,?,?)",
-            ("Menú del día", 10000, "MENU")
+            seed
         )
         conn.commit()
 
     conn.close()
 
 
+# -----------------------------
+# Jinja filter
+# -----------------------------
+@app.template_filter("pesos")
+def pesos(cents: int):
+    return f"${int(cents)/100:,.2f} MXN"
+
+
+# -----------------------------
+# Totales por periodo
+# -----------------------------
 def last_cut_at(conn) -> str:
     cur = conn.cursor()
     cur.execute("SELECT cut_at FROM cuts ORDER BY id DESC LIMIT 1")
@@ -158,19 +226,22 @@ def totals_since(conn, iso_dt: str):
     menu_qty = int(m["menu_qty"])
     menu_cents = int(m["menu_cents"])
 
+    other_qty = total_qty - menu_qty
+    other_cents = total_cents - menu_cents
+
     return {
         "total_qty": total_qty,
         "total_cents": total_cents,
         "menu_qty": menu_qty,
         "menu_cents": menu_cents,
-        "other_qty": total_qty - menu_qty,
-        "other_cents": total_cents - menu_cents,
+        "other_qty": other_qty,
+        "other_cents": other_cents,
     }
 
 
-# -------------------------
-# Rutas
-# -------------------------
+# -----------------------------
+# Routes
+# -----------------------------
 @app.route("/")
 def index():
     conn = db()
@@ -179,13 +250,13 @@ def index():
 
     cur = conn.cursor()
     cur.execute("""
-      SELECT o.id, o.created_at, o.status,
-             COALESCE(SUM(oi.qty * oi.price_cents),0) AS total_cents
-      FROM orders o
-      LEFT JOIN order_items oi ON oi.order_id=o.id
-      GROUP BY o.id
-      ORDER BY o.id DESC
-      LIMIT 10
+        SELECT o.id, o.created_at, o.status,
+               COALESCE(SUM(oi.qty * oi.price_cents), 0) AS total_cents
+        FROM orders o
+        LEFT JOIN order_items oi ON oi.order_id = o.id
+        GROUP BY o.id
+        ORDER BY o.id DESC
+        LIMIT 10
     """)
     recent_orders = cur.fetchall()
     conn.close()
@@ -197,12 +268,9 @@ def index():
 def menu():
     conn = db()
     cur = conn.cursor()
-
-    # Limpieza para que "ANTOJO " o " ANTOJO" no te arruinen la vida:
     cur.execute("""
-        SELECT id, name, price_cents, TRIM(UPPER(category)) AS category
-        FROM menu_items
-        WHERE TRIM(UPPER(category)) IN ('PASTELES','GELATINAS','ANTOJO')
+        SELECT * FROM menu_items
+        WHERE category IN ('PASTELES','GELATINAS','ANTOJO')
         ORDER BY category, name
     """)
     items = cur.fetchall()
@@ -220,11 +288,19 @@ def new_order():
     conn = db()
     cur = conn.cursor()
 
+    # Incluye MENU dentro del registro de ventas y lo pone arriba
     cur.execute("""
-        SELECT id, name, price_cents, TRIM(UPPER(category)) AS category
-        FROM menu_items
-        WHERE TRIM(UPPER(category)) IN ('PASTELES','GELATINAS','ANTOJO')
-        ORDER BY category, name
+        SELECT * FROM menu_items
+        WHERE category IN ('MENU','PASTELES','GELATINAS','ANTOJO')
+        ORDER BY
+          CASE category
+            WHEN 'MENU' THEN 0
+            WHEN 'ANTOJO' THEN 1
+            WHEN 'GELATINAS' THEN 2
+            WHEN 'PASTELES' THEN 3
+            ELSE 9
+          END,
+          name
     """)
     items = cur.fetchall()
 
@@ -232,7 +308,7 @@ def new_order():
         cur.execute("INSERT INTO orders (created_at, status) VALUES (?, 'ok')", (now_iso(),))
         order_id = cur.lastrowid
 
-        added_lines = 0
+        added_any = False
         for it in items:
             raw = request.form.get(f"qty_{it['id']}", "0")
             try:
@@ -245,10 +321,10 @@ def new_order():
                     INSERT INTO order_items (order_id, menu_item_id, qty, price_cents)
                     VALUES (?,?,?,?)
                 """, (order_id, it["id"], qty, it["price_cents"]))
-                added_lines += 1
+                added_any = True
 
-        if added_lines == 0:
-            cur.execute("DELETE FROM orders WHERE id=?", (order_id,))
+        if not added_any:
+            cur.execute("DELETE FROM orders WHERE id = ?", (order_id,))
             conn.commit()
             conn.close()
             flash("No agregaste productos.", "error")
@@ -257,36 +333,15 @@ def new_order():
         conn.commit()
         conn.close()
         flash(f"Venta registrada (#{order_id}).", "ok")
-        return redirect(url_for("index"))
+        return redirect(url_for("ticket", order_id=order_id))
 
     conn.close()
-    grouped = {"PASTELES": [], "GELATINAS": [], "ANTOJO": []}
+
+    grouped = {"MENU": [], "ANTOJO": [], "GELATINAS": [], "PASTELES": []}
     for it in items:
         grouped[it["category"]].append(it)
 
     return render_template("new_order.html", grouped=grouped)
-
-
-@app.route("/orders/menu", methods=["POST"])
-def quick_menu_order():
-    conn = db()
-    cur = conn.cursor()
-
-    cur.execute("INSERT INTO orders (created_at, status) VALUES (?, 'ok')", (now_iso(),))
-    order_id = cur.lastrowid
-
-    cur.execute("SELECT id, price_cents FROM menu_items WHERE category='MENU' LIMIT 1")
-    menu = cur.fetchone()
-
-    cur.execute("""
-        INSERT INTO order_items (order_id, menu_item_id, qty, price_cents)
-        VALUES (?,?,?,?)
-    """, (order_id, menu["id"], 1, menu["price_cents"]))
-
-    conn.commit()
-    conn.close()
-    flash("Menú registrado ($100).", "ok")
-    return redirect(url_for("index"))
 
 
 @app.route("/orders/<int:order_id>/cancel", methods=["POST"])
@@ -299,7 +354,7 @@ def cancel_order(order_id: int):
         return redirect(url_for("index"))
 
     if not reason:
-        flash("Falta motivo.", "error")
+        flash("Falta motivo de cancelación.", "error")
         return redirect(url_for("index"))
 
     conn = db()
@@ -318,15 +373,46 @@ def cancel_order(order_id: int):
         return redirect(url_for("index"))
 
     cur.execute("UPDATE orders SET status='cancelled' WHERE id=?", (order_id,))
-    cur.execute(
-        "INSERT INTO adjustments (created_at, kind, order_id, reason) VALUES (?,?,?,?)",
-        (now_iso(), "cancel", order_id, reason)
-    )
+    cur.execute("""
+        INSERT INTO adjustments (created_at, kind, order_id, reason)
+        VALUES (?,?,?,?)
+    """, (now_iso(), "cancel", order_id, reason))
 
     conn.commit()
     conn.close()
+
     flash(f"Venta #{order_id} cancelada.", "ok")
     return redirect(url_for("index"))
+
+
+@app.route("/ticket/<int:order_id>")
+def ticket(order_id: int):
+    conn = db()
+    cur = conn.cursor()
+
+    cur.execute("SELECT id, created_at, status FROM orders WHERE id = ?", (order_id,))
+    order = cur.fetchone()
+    if not order:
+        conn.close()
+        return "Ticket no encontrado", 404
+
+    cur.execute("""
+        SELECT
+            mi.name AS name,
+            mi.category AS category,
+            oi.qty AS qty,
+            oi.price_cents AS price_cents
+        FROM order_items oi
+        JOIN menu_items mi ON mi.id = oi.menu_item_id
+        WHERE oi.order_id = ?
+        ORDER BY mi.category, mi.name
+    """, (order_id,))
+    items = cur.fetchall()
+
+    total_cents = sum(int(r["qty"]) * int(r["price_cents"]) for r in items)
+
+    conn.close()
+    return render_template("ticket.html", order=order, items=items, total_cents=total_cents)
 
 
 @app.route("/sales")
@@ -336,10 +422,10 @@ def sales():
     totals = totals_since(conn, lc)
 
     cur = conn.cursor()
-    cur.execute("SELECT * FROM cuts ORDER BY id DESC LIMIT 30")
+    cur.execute("SELECT * FROM cuts ORDER BY id DESC LIMIT 20")
     cuts = cur.fetchall()
-    conn.close()
 
+    conn.close()
     return render_template("sales.html", last_cut=lc, totals=totals, cuts=cuts)
 
 
@@ -350,17 +436,17 @@ def make_cut():
     counted = (request.form.get("counted") or "").strip()
 
     if not require_pin(pin):
-        flash("PIN incorrecto.", "error")
+        flash("PIN incorrecto. No se hizo corte.", "error")
         return redirect(url_for("sales"))
 
     if not cashier:
-        flash("Pon responsable (nombre o iniciales).", "error")
+        flash("Pon quién hizo el corte (nombre o iniciales).", "error")
         return redirect(url_for("sales"))
 
     try:
         counted_cents = int(round(float(counted) * 100))
     except Exception:
-        flash("Efectivo contado inválido. Ej: 1520.50", "error")
+        flash("Efectivo contado inválido. Usa formato 1234.50", "error")
         return redirect(url_for("sales"))
 
     conn = db()
@@ -369,17 +455,16 @@ def make_cut():
 
     expected_cents = t["total_cents"]
     diff_cents = counted_cents - expected_cents
+    cut_at = now_iso()
 
     cur = conn.cursor()
     cur.execute("""
         INSERT INTO cuts (
-          cut_at, cashier,
-          expected_cents, counted_cents, diff_cents,
-          total_qty, menu_qty, menu_cents, other_qty, other_cents
+            cut_at, cashier, expected_cents, counted_cents, diff_cents,
+            total_qty, menu_qty, menu_cents, other_qty, other_cents
         ) VALUES (?,?,?,?,?,?,?,?,?,?)
     """, (
-        now_iso(), cashier,
-        expected_cents, counted_cents, diff_cents,
+        cut_at, cashier, expected_cents, counted_cents, diff_cents,
         t["total_qty"], t["menu_qty"], t["menu_cents"], t["other_qty"], t["other_cents"]
     ))
 
@@ -387,7 +472,7 @@ def make_cut():
     conn.close()
 
     create_backup()
-    flash("Corte guardado y respaldo creado (backups/).", "ok")
+    flash("Corte guardado y respaldo creado.", "ok")
     return redirect(url_for("sales"))
 
 
@@ -395,7 +480,7 @@ def make_cut():
 def reset_period():
     pin = (request.form.get("pin") or "").strip()
     if not require_pin(pin):
-        flash("PIN incorrecto.", "error")
+        flash("PIN incorrecto. No se reinició.", "error")
         return redirect(url_for("sales"))
 
     conn = db()
@@ -403,18 +488,37 @@ def reset_period():
     cur = conn.cursor()
 
     cur.execute("""
-      DELETE FROM order_items
-      WHERE order_id IN (SELECT id FROM orders WHERE created_at >= ? AND status='ok')
+        DELETE FROM order_items
+        WHERE order_id IN (
+            SELECT id FROM orders WHERE created_at >= ? AND status='ok'
+        )
     """, (lc,))
     cur.execute("DELETE FROM orders WHERE created_at >= ? AND status='ok'", (lc,))
 
     conn.commit()
     conn.close()
 
-    flash("Periodo actual reiniciado.", "ok")
+    flash("Periodo actual reiniciado (ventas ok borradas).", "ok")
+    return redirect(url_for("sales"))
+
+
+@app.route("/backup", methods=["POST"])
+def manual_backup():
+    pin = (request.form.get("pin") or "").strip()
+    if not require_pin(pin):
+        flash("PIN incorrecto. No se respaldó.", "error")
+        return redirect(url_for("sales"))
+
+    path = create_backup()
+    if not path:
+        flash("No se encontró la base de datos para respaldar.", "error")
+        return redirect(url_for("sales"))
+
+    flash("Respaldo creado en la carpeta /backups.", "ok")
     return redirect(url_for("sales"))
 
 
 if __name__ == "__main__":
     init_db()
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    port = int(os.environ.get("PORT", "5000"))
+    app.run(host="0.0.0.0", port=port, debug=True)
