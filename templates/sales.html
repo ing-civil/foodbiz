@@ -1,85 +1,155 @@
 <!doctype html>
 <html lang="es">
-<head><meta charset="utf-8"><title>Ventas y cortes</title></head>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Cortes</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
 <body>
-  <h1>Ventas y cortes</h1>
-  <p><a href="/">Volver</a></p>
+  <div class="container">
 
-  <h2>Periodo actual (desde {{ last_cut }})</h2>
-  <p><strong>Total:</strong> {{ totals.total_cents|pesos }}</p>
-  <p><strong>Cantidad:</strong> {{ totals.total_qty }}</p>
-  <p><strong>Menú:</strong> {{ totals.menu_qty }} ({{ totals.menu_cents|pesos }})</p>
-  <p><strong>Antojos/Postres:</strong> {{ totals.other_qty }} ({{ totals.other_cents|pesos }})</p>
+    <div class="header">
+      <div>
+        <h1 class="h-title">Corte de caja</h1>
+        <p class="h-sub">Guarda fecha/hora del corte y diferencia entre esperado vs contado.</p>
+      </div>
+      <div class="nav">
+        <a class="btn" href="{{ url_for('index') }}">Inicio</a>
+        <a class="btn primary" href="{{ url_for('new_order') }}">Registrar venta</a>
+        <a class="btn" href="{{ url_for('menu') }}">Menú</a>
+      </div>
+    </div>
 
-  <hr>
-
-  <h2>Hacer corte (requiere PIN)</h2>
-  <form method="post" action="/cuts/new">
-    <label>Responsable:</label>
-    <input name="cashier" placeholder="Ej. JP / Ana" required>
-    <br><br>
-    <label>Efectivo contado (MXN):</label>
-    <input name="counted" placeholder="Ej. 1520.50" required>
-    <br><br>
-    <label>PIN:</label>
-    <input name="pin" placeholder="PIN" style="width:80px;" required>
-    <br><br>
-    <button type="submit" style="font-size:18px;">Guardar corte</button>
-  </form>
-
-  <h2>Reiniciar periodo actual (requiere PIN)</h2>
-  <form method="post" action="/reset" onsubmit="return confirm('Esto borra ventas del periodo actual. ¿Seguro?');">
-    <input name="pin" placeholder="PIN" style="width:80px;" required>
-    <button type="submit">Reiniciar</button>
-  </form>
-
-  <h2>Respaldo manual (requiere PIN)</h2>
-  <form method="post" action="/backup">
-    <input name="pin" placeholder="PIN" style="width:80px;" required>
-    <button type="submit">Crear respaldo</button>
-  </form>
-
-  <hr>
-
-  <h2>Historial de cortes</h2>
-  {% if cuts|length == 0 %}
-    <p>No hay cortes aún.</p>
-  {% else %}
-    <table border="1" cellpadding="8">
-      <tr>
-        <th>Fecha/Hora</th>
-        <th>Responsable</th>
-        <th>Total esperado</th>
-        <th>Efectivo contado</th>
-        <th>Diferencia</th>
-        <th>Qty</th>
-        <th>Menú</th>
-        <th>Antojos</th>
-      </tr>
-      {% for c in cuts %}
-      <tr>
-        <td>{{ c.cut_at }}</td>
-        <td>{{ c.cashier }}</td>
-        <td>{{ c.expected_cents|pesos }}</td>
-        <td>{{ c.counted_cents|pesos }}</td>
-        <td>{{ c.diff_cents|pesos }}</td>
-        <td>{{ c.total_qty }}</td>
-        <td>{{ c.menu_qty }} ({{ c.menu_cents|pesos }})</td>
-        <td>{{ c.other_qty }} ({{ c.other_cents|pesos }})</td>
-      </tr>
-      {% endfor %}
-    </table>
-  {% endif %}
-
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <hr>
-      <ul>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
         {% for cat, msg in messages %}
-          <li><strong>{{ cat }}:</strong> {{ msg }}</li>
+          <div class="flash {{ cat }}">
+            <span class="tag">{{ cat|upper }}</span>{{ msg }}
+          </div>
         {% endfor %}
-      </ul>
-    {% endif %}
-  {% endwith %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="grid two">
+
+      <div class="card">
+        <h2>Resumen del periodo actual</h2>
+        <div class="badge">Desde: <b>{{ last_cut }}</b></div>
+        <div class="hr"></div>
+
+        <div class="kpis">
+          <div class="kpi">
+            <div class="label">Total vendido</div>
+            <div class="value">{{ totals.total_cents|pesos }}</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Cantidad vendida</div>
+            <div class="value">{{ totals.total_qty }}</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Menús</div>
+            <div class="value">{{ totals.menu_qty }} ({{ totals.menu_cents|pesos }})</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Otros</div>
+            <div class="value">{{ totals.other_qty }} ({{ totals.other_cents|pesos }})</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">
+          <h2>Hacer corte</h2>
+          <span class="pill">requiere PIN</span>
+        </div>
+
+        <form class="form" method="post" action="{{ url_for('make_cut') }}">
+          <div class="field">
+            <label>Quién hizo el corte</label>
+            <input name="cashier" placeholder="Ej. JP / Ana / Caja 1" required>
+          </div>
+
+          <div class="field">
+            <label>Efectivo contado (MXN)</label>
+            <input name="counted" placeholder="Ej. 1234.50" required>
+          </div>
+
+          <div class="field">
+            <label>PIN administrador</label>
+            <input name="pin" type="password" placeholder="****" required>
+          </div>
+
+          <div class="nav">
+            <button class="btn primary" type="submit">Guardar corte</button>
+          </div>
+        </form>
+
+        <div class="hr"></div>
+
+        <div class="grid" style="gap:10px;">
+          <form method="post" action="{{ url_for('reset_period') }}">
+            <div class="field">
+              <label>PIN (reiniciar periodo actual)</label>
+              <input name="pin" type="password" placeholder="****" required>
+            </div>
+            <button class="btn danger" type="submit">Reiniciar periodo (borra ventas OK)</button>
+          </form>
+
+          <form method="post" action="{{ url_for('manual_backup') }}">
+            <div class="field">
+              <label>PIN (respaldo manual)</label>
+              <input name="pin" type="password" placeholder="****" required>
+            </div>
+            <button class="btn" type="submit">Crear respaldo</button>
+          </form>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <div class="section-title">
+        <h2>Historial de cortes</h2>
+        <span class="pill">últimos 20</span>
+      </div>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Fecha/hora</th>
+            <th>Cajero</th>
+            <th style="text-align:right;">Esperado</th>
+            <th style="text-align:right;">Contado</th>
+            <th style="text-align:right;">Diferencia</th>
+            <th style="text-align:right;">Qty</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in cuts %}
+          <tr>
+            <td>{{ c.cut_at }}</td>
+            <td><b>{{ c.cashier }}</b></td>
+            <td style="text-align:right;">{{ c.expected_cents|pesos }}</td>
+            <td style="text-align:right;">{{ c.counted_cents|pesos }}</td>
+            <td style="text-align:right;">
+              {% if c.diff_cents < 0 %}
+                <span class="pill" style="border-color:rgba(239,68,68,.35);">-{{ (-c.diff_cents)|pesos }}</span>
+              {% elif c.diff_cents > 0 %}
+                <span class="pill" style="border-color:rgba(34,197,94,.35);">+{{ c.diff_cents|pesos }}</span>
+              {% else %}
+                <span class="pill">0</span>
+              {% endif %}
+            </td>
+            <td style="text-align:right;">{{ c.total_qty }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="muted">Aún no hay cortes guardados.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
 </body>
 </html>
