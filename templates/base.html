@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title or "FoodBiz" }}</title>
+  <style>
+    :root { --bg:#0b1220; --card:#121a2b; --text:#e9eefc; --muted:#a8b3d6; --acc:#5dd6c7; --danger:#ff6b6b; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; background:var(--bg); color:var(--text); }
+    .wrap { max-width: 1050px; margin: 0 auto; padding: 18px; }
+    .topbar { display:flex; gap:10px; align-items:center; justify-content:space-between; padding:14px 18px; background:#0e1730; position:sticky; top:0; }
+    .topbar a { color:var(--text); text-decoration:none; font-weight:700; }
+    .nav { display:flex; gap:10px; flex-wrap:wrap; }
+    .btn { display:inline-block; padding:10px 12px; border-radius:12px; background:var(--card); color:var(--text); text-decoration:none; border:1px solid rgba(255,255,255,.08); }
+    .btn:hover { border-color: rgba(93,214,199,.45); }
+    .btn.acc { background: rgba(93,214,199,.12); border-color: rgba(93,214,199,.35); }
+    .btn.danger { background: rgba(255,107,107,.12); border-color: rgba(255,107,107,.35); }
+    h1,h2,h3 { margin: 14px 0 10px; }
+    .grid { display:grid; grid-template-columns: repeat(12, 1fr); gap:12px; }
+    .card { grid-column: span 12; background:var(--card); border:1px solid rgba(255,255,255,.08); border-radius:18px; padding:14px; }
+    @media (min-width: 900px){ .col6{grid-column: span 6;} .col4{grid-column: span 4;} .col8{grid-column: span 8;} }
+    .muted { color:var(--muted); }
+    table { width:100%; border-collapse: collapse; }
+    th, td { padding:10px; border-bottom: 1px solid rgba(255,255,255,.08); vertical-align:top; }
+    th { text-align:left; color: var(--muted); font-weight:700; }
+    input, textarea, select { width:100%; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:#0e1730; color:var(--text); }
+    textarea { resize: vertical; }
+    .row { display:flex; gap:10px; flex-wrap:wrap; }
+    .row > * { flex:1; min-width: 180px; }
+    .flash { padding:10px 12px; border-radius:12px; margin: 10px 0; border:1px solid rgba(255,255,255,.08); }
+    .flash.ok { background: rgba(93,214,199,.10); border-color: rgba(93,214,199,.25); }
+    .flash.error { background: rgba(255,107,107,.10); border-color: rgba(255,107,107,.25); }
+    .pill { display:inline-block; padding:6px 10px; border-radius:999px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); font-size: 12px; }
+    .low { color: #ffd27a; font-weight: 800; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <a href="{{ url_for('index') }}">FoodBiz</a>
+    <div class="nav">
+      <a class="btn" href="{{ url_for('new_order') }}">Registrar venta</a>
+      <a class="btn" href="{{ url_for('menu') }}">Menú</a>
+      <a class="btn" href="{{ url_for('sales') }}">Corte / Relación</a>
+      <a class="btn" href="{{ url_for('inventory_home') }}">Inventario</a>
+      <a class="btn" href="{{ url_for('expenses') }}">Egresos</a>
+      <a class="btn" href="{{ url_for('pedidos') }}">Pedidos</a>
+    </div>
+  </div>
+
+  <div class="wrap">
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+      {% if msgs %}
+        {% for cat, msg in msgs %}
+          <div class="flash {{ cat }}">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>

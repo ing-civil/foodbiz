@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Pedidos</h1>
+
+<div class="row">
+  <a class="btn acc" href="{{ url_for('pedidos_new') }}">+ Nuevo pedido</a>
+</div>
+
+<div class="card">
+  <table>
+    <tr>
+      <th>Entrega</th><th>Cliente</th><th>Tel</th><th>Nota</th>
+      <th>Pedido</th><th>Total</th><th>Anticipo</th><th>Resta</th><th>Estado</th><th>Acción</th>
+    </tr>
+    {% for p in pedidos %}
+      {% set rest = p["total_cents"] - p["deposit_cents"] %}
+      <tr>
+        <td>{{ p["delivery_date"] }}</td>
+        <td>{{ p["customer_name"] }}</td>
+        <td>{{ p["customer_phone"] }}</td>
+        <td>{{ p["note_number"] }}</td>
+        <td>{{ p["description"] }}</td>
+        <td><b>{{ p["total_cents"]|pesos }}</b></td>
+        <td>{{ p["deposit_cents"]|pesos }}</td>
+        <td><b>{{ rest|pesos }}</b></td>
+        <td><span class="pill">{{ p["status"] }}</span></td>
+        <td>
+          <form method="post" action="{{ url_for('pedidos_status', pid=p['id']) }}">
+            <div class="row">
+              <select name="status">
+                <option value="open" {% if p["status"]=="open" %}selected{% endif %}>Abierto</option>
+                <option value="delivered" {% if p["status"]=="delivered" %}selected{% endif %}>Entregado</option>
+                <option value="cancelled" {% if p["status"]=="cancelled" %}selected{% endif %}>Cancelado</option>
+              </select>
+              <input name="pin" type="password" placeholder="NIP (solo para cancelar)">
+              <button class="btn" type="submit">Actualizar</button>
+            </div>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

@@ -1,129 +1,54 @@
-<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Foodbiz</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-  <div class="container">
+{% extends "base.html" %}
+{% block content %}
+<h1>Inicio</h1>
+<p class="muted">Último corte: <span class="pill">{{ last_cut }}</span></p>
 
-    <div class="header">
-      <div>
-        <h1 class="h-title">Foodbiz</h1>
-        <p class="h-sub">Totales desde el último corte. Cancelaciones requieren motivo y PIN.</p>
-      </div>
-      <div class="nav">
-        <a class="btn primary" href="{{ url_for('new_order') }}">Registrar venta</a>
-        <a class="btn" href="{{ url_for('menu') }}">Menú</a>
-        <a class="btn" href="{{ url_for('sales') }}">Cortes</a>
-      </div>
-    </div>
-
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for cat, msg in messages %}
-          <div class="flash {{ cat }}">
-            <span class="tag">{{ cat|upper }}</span>{{ msg }}
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-
-    <div class="grid two">
-      <div class="card">
-        <h2>Resumen del periodo</h2>
-        <div class="badge">Desde: <b>{{ last_cut }}</b></div>
-        <div class="hr"></div>
-
-        <div class="kpis">
-          <div class="kpi">
-            <div class="label">Total vendido</div>
-            <div class="value">{{ totals.total_cents|pesos }}</div>
-          </div>
-          <div class="kpi">
-            <div class="label">Cantidad vendida</div>
-            <div class="value">{{ totals.total_qty }}</div>
-          </div>
-          <div class="kpi">
-            <div class="label">Menús</div>
-            <div class="value">{{ totals.menu_qty }} ({{ totals.menu_cents|pesos }})</div>
-          </div>
-          <div class="kpi">
-            <div class="label">Otros</div>
-            <div class="value">{{ totals.other_qty }} ({{ totals.other_cents|pesos }})</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="section-title">
-          <h2>Últimas 10 ventas</h2>
-          <span class="pill">para cancelar</span>
-        </div>
-
-        <table class="table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Hora</th>
-              <th>Estatus</th>
-              <th style="text-align:right;">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for o in recent_orders %}
-              <tr>
-                <td><b>#{{ o.id }}</b></td>
-                <td>{{ o.created_at }}</td>
-                <td>
-                  {% if o.status == 'ok' %}
-                    <span class="pill" style="border-color:rgba(34,197,94,.35);">OK</span>
-                  {% else %}
-                    <span class="pill" style="border-color:rgba(239,68,68,.35);">CANCELADA</span>
-                  {% endif %}
-                </td>
-                <td style="text-align:right;">{{ o.total_cents|pesos }}</td>
-              </tr>
-            {% else %}
-              <tr><td colspan="4" class="muted">No hay ventas todavía.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-
-        <div class="hr"></div>
-
-        <div class="section-title">
-          <h2>Devolución / Cancelar venta</h2>
-          <span class="pill">requiere PIN</span>
-        </div>
-        <div class="muted">Selecciona una venta <b>OK</b>, pon motivo y PIN.</div>
-        <div class="hr"></div>
-
-        <div class="items">
-          {% for o in recent_orders %}
-            {% if o.status == 'ok' %}
-              <form class="item" method="post" action="{{ url_for('cancel_order', order_id=o.id) }}">
-                <div class="name">Cancelar #{{ o.id }}</div>
-                <div class="price">{{ o.total_cents|pesos }}</div>
-                <div class="qty" style="display:flex; gap:8px;">
-                  <input name="reason" placeholder="Motivo (ej. error, devolución, etc.)" required>
-                  <input name="pin" type="password" placeholder="PIN" required style="max-width:140px;">
-                  <button class="btn danger small" type="submit">Cancelar</button>
-                </div>
-              </form>
-            {% endif %}
-          {% endfor %}
-        </div>
-
-        <div class="muted" style="margin-top:10px;">
-          Si no aparece la venta aquí, ya estaba cancelada o no hay ventas recientes.
-        </div>
-
-      </div>
-    </div>
-
+<div class="grid">
+  <div class="card col4">
+    <h3>Ventas (desde último corte)</h3>
+    <p><b>{{ sales.cents|pesos }}</b></p>
+    <p class="muted">Cantidad: {{ sales.qty }}</p>
   </div>
-</body>
-</html>
+  <div class="card col4">
+    <h3>Egresos (desde último corte)</h3>
+    <p><b>{{ expenses_cents|pesos }}</b></p>
+    <p class="muted">Gas, huevo, compras al momento, etc.</p>
+  </div>
+  <div class="card col4">
+    <h3>Acciones rápidas</h3>
+    <div class="row">
+      <a class="btn acc" href="{{ url_for('new_order') }}">Nueva venta</a>
+      <a class="btn" href="{{ url_for('inventory_ship') }}">Registrar envío</a>
+    </div>
+  </div>
+
+  <div class="card col12">
+    <h3>Ventas recientes</h3>
+    <table>
+      <tr><th>ID</th><th>Fecha</th><th>Total</th><th>Estatus</th><th>Ticket</th><th>Cancelar</th></tr>
+      {% for o in recent_orders %}
+        <tr>
+          <td>#{{ o["id"] }}</td>
+          <td>{{ o["created_at"] }}</td>
+          <td>{{ o["total_cents"]|pesos }}</td>
+          <td>{{ o["status"] }}</td>
+          <td><a class="btn" href="{{ url_for('ticket', order_id=o['id']) }}">Ver</a></td>
+          <td>
+            {% if o["status"] == "ok" %}
+            <form method="post" action="{{ url_for('cancel_order', order_id=o['id']) }}">
+              <div class="row">
+                <input name="reason" placeholder="Motivo" required>
+                <input name="pin" type="password" placeholder="NIP" required>
+                <button class="btn danger" type="submit">Cancelar</button>
+              </div>
+            </form>
+            {% else %}
+              <span class="muted">—</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+{% endblock %}

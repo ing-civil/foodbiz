@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Inventario (Producto terminado)</h1>
+
+<div class="row">
+  <a class="btn acc" href="{{ url_for('inventory_ship') }}">Registrar envío Centro → PV</a>
+</div>
+
+<div class="grid">
+  <div class="card col6">
+    <h2>Punto de venta (PV)</h2>
+    {% for cat, items in pv.items() %}
+      <h3>{{ cat }}</h3>
+      <table>
+        <tr><th>Producto</th><th>Stock</th><th>Mínimo PV</th></tr>
+        {% for it in items %}
+          <tr>
+            <td>{{ it["name"] }}</td>
+            <td>
+              <b class="{% if it['stock'] <= it['min_pv_stock'] and it['min_pv_stock'] > 0 %}low{% endif %}">
+                {{ it["stock"] }}
+              </b>
+            </td>
+            <td>{{ it["min_pv_stock"] }}</td>
+          </tr>
+        {% endfor %}
+      </table>
+    {% endfor %}
+  </div>
+
+  <div class="card col6">
+    <h2>Centro de producción</h2>
+    {% for cat, items in centro.items() %}
+      <h3>{{ cat }}</h3>
+      <table>
+        <tr><th>Producto</th><th>Stock</th></tr>
+        {% for it in items %}
+          <tr>
+            <td>{{ it["name"] }}</td>
+            <td><b>{{ it["stock"] }}</b></td>
+          </tr>
+        {% endfor %}
+      </table>
+    {% endfor %}
+  </div>
+</div>
+
+{% endblock %}

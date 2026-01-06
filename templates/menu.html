@@ -1,106 +1,20 @@
-<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Menú</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-  <div class="container">
+{% extends "base.html" %}
+{% block content %}
+<h1>Menú / Catálogo</h1>
 
-    <div class="header">
-      <div>
-        <h1 class="h-title">Menú</h1>
-        <p class="h-sub">Vista rápida para consultar precios. Para registrar ventas usa <b>Registrar venta</b>.</p>
-      </div>
-      <div class="nav">
-        <a class="btn" href="{{ url_for('index') }}">Inicio</a>
-        <a class="btn primary" href="{{ url_for('new_order') }}">Registrar venta</a>
-        <a class="btn" href="{{ url_for('sales') }}">Cortes</a>
-      </div>
-    </div>
-
-    <div class="grid two">
-      <div class="card">
-        <div class="section-title">
-          <h2>ANTOJOS</h2>
-          <span class="pill">por pieza</span>
-        </div>
-
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Producto</th>
-              <th style="text-align:right;">Costo</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for it in grouped["ANTOJO"] %}
-              <tr>
-                <td><b>{{ it.name }}</b></td>
-                <td style="text-align:right;">{{ it.price_cents|pesos }}</td>
-              </tr>
-            {% else %}
-              <tr><td colspan="2" class="muted">No hay antojitos cargados.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-
-      <div class="card">
-        <div class="section-title">
-          <h2>GELATINAS</h2>
-          <span class="pill">tamaño grande</span>
-        </div>
-
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Producto</th>
-              <th style="text-align:right;">Costo</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for it in grouped["GELATINAS"] %}
-              <tr>
-                <td><b>{{ it.name }}</b></td>
-                <td style="text-align:right;">{{ it.price_cents|pesos }}</td>
-              </tr>
-            {% else %}
-              <tr><td colspan="2" class="muted">No hay gelatinas cargadas.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="card" style="margin-top:14px;">
-      <div class="section-title">
-        <h2>PASTELES</h2>
-        <span class="pill">tamaño grande</span>
-      </div>
-
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Producto</th>
-            <th style="text-align:right;">Costo</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for it in grouped["PASTELES"] %}
-            <tr>
-              <td><b>{{ it.name }}</b></td>
-              <td style="text-align:right;">{{ it.price_cents|pesos }}</td>
-            </tr>
-          {% else %}
-            <tr><td colspan="2" class="muted">No hay pasteles cargados.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-
+{% for cat, items in grouped.items() %}
+  <div class="card">
+    <h3>{{ cat }}</h3>
+    <table>
+      <tr><th>Producto</th><th>Precio</th></tr>
+      {% for it in items %}
+        <tr>
+          <td>{{ it["name"] }}</td>
+          <td><b>{{ it["price_cents"]|pesos }}</b></td>
+        </tr>
+      {% endfor %}
+    </table>
   </div>
-</body>
-</html>
+{% endfor %}
+
+{% endblock %}

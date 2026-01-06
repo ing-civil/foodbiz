@@ -1,155 +1,93 @@
-<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Cortes</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-  <div class="container">
+{% extends "base.html" %}
+{% block content %}
+<h1>Corte / Relación</h1>
 
-    <div class="header">
-      <div>
-        <h1 class="h-title">Corte de caja</h1>
-        <p class="h-sub">Guarda fecha/hora del corte y diferencia entre esperado vs contado.</p>
-      </div>
-      <div class="nav">
-        <a class="btn" href="{{ url_for('index') }}">Inicio</a>
-        <a class="btn primary" href="{{ url_for('new_order') }}">Registrar venta</a>
-        <a class="btn" href="{{ url_for('menu') }}">Menú</a>
-      </div>
-    </div>
-
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for cat, msg in messages %}
-          <div class="flash {{ cat }}">
-            <span class="tag">{{ cat|upper }}</span>{{ msg }}
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-
-    <div class="grid two">
-
-      <div class="card">
-        <h2>Resumen del periodo actual</h2>
-        <div class="badge">Desde: <b>{{ last_cut }}</b></div>
-        <div class="hr"></div>
-
-        <div class="kpis">
-          <div class="kpi">
-            <div class="label">Total vendido</div>
-            <div class="value">{{ totals.total_cents|pesos }}</div>
-          </div>
-          <div class="kpi">
-            <div class="label">Cantidad vendida</div>
-            <div class="value">{{ totals.total_qty }}</div>
-          </div>
-          <div class="kpi">
-            <div class="label">Menús</div>
-            <div class="value">{{ totals.menu_qty }} ({{ totals.menu_cents|pesos }})</div>
-          </div>
-          <div class="kpi">
-            <div class="label">Otros</div>
-            <div class="value">{{ totals.other_qty }} ({{ totals.other_cents|pesos }})</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="section-title">
-          <h2>Hacer corte</h2>
-          <span class="pill">requiere PIN</span>
-        </div>
-
-        <form class="form" method="post" action="{{ url_for('make_cut') }}">
-          <div class="field">
-            <label>Quién hizo el corte</label>
-            <input name="cashier" placeholder="Ej. JP / Ana / Caja 1" required>
-          </div>
-
-          <div class="field">
-            <label>Efectivo contado (MXN)</label>
-            <input name="counted" placeholder="Ej. 1234.50" required>
-          </div>
-
-          <div class="field">
-            <label>PIN administrador</label>
-            <input name="pin" type="password" placeholder="****" required>
-          </div>
-
-          <div class="nav">
-            <button class="btn primary" type="submit">Guardar corte</button>
-          </div>
-        </form>
-
-        <div class="hr"></div>
-
-        <div class="grid" style="gap:10px;">
-          <form method="post" action="{{ url_for('reset_period') }}">
-            <div class="field">
-              <label>PIN (reiniciar periodo actual)</label>
-              <input name="pin" type="password" placeholder="****" required>
-            </div>
-            <button class="btn danger" type="submit">Reiniciar periodo (borra ventas OK)</button>
-          </form>
-
-          <form method="post" action="{{ url_for('manual_backup') }}">
-            <div class="field">
-              <label>PIN (respaldo manual)</label>
-              <input name="pin" type="password" placeholder="****" required>
-            </div>
-            <button class="btn" type="submit">Crear respaldo</button>
-          </form>
-        </div>
-      </div>
-
-    </div>
-
-    <div class="card" style="margin-top:14px;">
-      <div class="section-title">
-        <h2>Historial de cortes</h2>
-        <span class="pill">últimos 20</span>
-      </div>
-
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Fecha/hora</th>
-            <th>Cajero</th>
-            <th style="text-align:right;">Esperado</th>
-            <th style="text-align:right;">Contado</th>
-            <th style="text-align:right;">Diferencia</th>
-            <th style="text-align:right;">Qty</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for c in cuts %}
-          <tr>
-            <td>{{ c.cut_at }}</td>
-            <td><b>{{ c.cashier }}</b></td>
-            <td style="text-align:right;">{{ c.expected_cents|pesos }}</td>
-            <td style="text-align:right;">{{ c.counted_cents|pesos }}</td>
-            <td style="text-align:right;">
-              {% if c.diff_cents < 0 %}
-                <span class="pill" style="border-color:rgba(239,68,68,.35);">-{{ (-c.diff_cents)|pesos }}</span>
-              {% elif c.diff_cents > 0 %}
-                <span class="pill" style="border-color:rgba(34,197,94,.35);">+{{ c.diff_cents|pesos }}</span>
-              {% else %}
-                <span class="pill">0</span>
-              {% endif %}
-            </td>
-            <td style="text-align:right;">{{ c.total_qty }}</td>
-          </tr>
-          {% else %}
-          <tr><td colspan="6" class="muted">Aún no hay cortes guardados.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-
+<div class="grid">
+  <div class="card col4">
+    <h3>Fondo fijo</h3>
+    <p><b>{{ cash_float_cents|pesos }}</b></p>
+    <p class="muted">Siempre está en caja para cambio.</p>
   </div>
-</body>
-</html>
+
+  <div class="card col4">
+    <h3>Ventas (desde último corte)</h3>
+    <p><b>{{ sales.cents|pesos }}</b></p>
+    <p class="muted">Cantidad: {{ sales.qty }}</p>
+  </div>
+
+  <div class="card col4">
+    <h3>Egresos (desde último corte)</h3>
+    <p><b>{{ expenses_cents|pesos }}</b></p>
+    <p class="muted">Gas, huevo, compras.</p>
+  </div>
+
+  <div class="card col12">
+    <h3>Efectivo esperado en caja</h3>
+    <p><b>{{ expected_cash_cents|pesos }}</b> <span class="pill">Fondo + Ventas - Egresos</span></p>
+  </div>
+
+  <div class="card col6">
+    <h3>Hacer corte (requiere NIP)</h3>
+    <form method="post" action="{{ url_for('make_cut') }}">
+      <div class="row">
+        <input name="cashier" placeholder="Quién hace el corte" required>
+        <input name="counted" placeholder="Efectivo contado (ej 1234.50)" required>
+      </div>
+      <div class="row">
+        <input name="pin" type="password" placeholder="NIP" required>
+        <button class="btn acc" type="submit">Guardar corte</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card col6">
+    <h3>Relación fin de día (requiere NIP)</h3>
+    <form method="post" action="{{ url_for('make_closing') }}">
+      <div class="row">
+        <input name="who" placeholder="Quién hace la relación" required>
+        <input name="note" placeholder="Nota (opcional)">
+      </div>
+      <div class="row">
+        <input name="pin" type="password" placeholder="NIP" required>
+        <button class="btn acc" type="submit">Guardar relación</button>
+      </div>
+    </form>
+    <p class="muted">El centro puede verla desde Inventario/Pedidos también porque todo vive en la nube.</p>
+  </div>
+
+  <div class="card col12">
+    <h3>Cortes recientes</h3>
+    <table>
+      <tr><th>Fecha</th><th>Por</th><th>Esperado</th><th>Contado</th><th>Diferencia</th><th>Ventas</th><th>Egresos</th></tr>
+      {% for c in cuts %}
+        <tr>
+          <td>{{ c["cut_at"] }}</td>
+          <td>{{ c["cashier"] }}</td>
+          <td>{{ c["expected_cents"]|pesos }}</td>
+          <td>{{ c["counted_cents"]|pesos }}</td>
+          <td><b>{{ c["diff_cents"]|pesos }}</b></td>
+          <td>{{ c["total_cents"]|pesos }}</td>
+          <td>{{ c["expenses_cents"]|pesos }}</td>
+        </tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <div class="card col12">
+    <h3>Relaciones recientes</h3>
+    <table>
+      <tr><th>Fecha</th><th>Por</th><th>Ventas</th><th>Egresos</th><th>Esperado en caja</th><th>Nota</th></tr>
+      {% for r in closings %}
+        <tr>
+          <td>{{ r["closed_at"] }}</td>
+          <td>{{ r["closed_by"] }}</td>
+          <td>{{ r["sales_total_cents"]|pesos }}</td>
+          <td>{{ r["expenses_cents"]|pesos }}</td>
+          <td><b>{{ r["expected_cash_cents"]|pesos }}</b></td>
+          <td>{{ r["note"] }}</td>
+        </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+{% endblock %}

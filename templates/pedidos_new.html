@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Nuevo pedido</h1>
+
+<div class="card">
+  <form method="post">
+    <div class="row">
+      <div>
+        <label class="muted">Fecha de entrega</label>
+        <input name="delivery_date" type="date" required>
+      </div>
+      <div>
+        <label class="muted">Número de nota</label>
+        <input name="note_number" required>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label class="muted">Nombre</label>
+        <input name="customer_name" required>
+      </div>
+      <div>
+        <label class="muted">Teléfono</label>
+        <input name="customer_phone" required>
+      </div>
+    </div>
+
+    <label class="muted">Pedido (descripción)</label>
+    <textarea name="description" rows="5" required></textarea>
+
+    <div class="row">
+      <div>
+        <label class="muted">Total</label>
+        <input name="total" placeholder="Ej: 350.00" required>
+      </div>
+      <div>
+        <label class="muted">Anticipo (0 si no dejó)</label>
+        <input name="deposit" placeholder="Ej: 100.00" value="0">
+      </div>
+    </div>
+
+    <button class="btn acc" type="submit">Guardar pedido</button>
+    <a class="btn" href="{{ url_for('pedidos') }}">Volver</a>
+  </form>
+</div>
+{% endblock %}
